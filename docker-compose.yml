@@ -10,3 +10,18 @@ services:
       - /app/.next
     environment:
       - NODE_ENV=development
+
+  coturn:
+    image: coturn/coturn:latest
+    container_name: coturn
+    restart: always
+    command:
+      - -c
+      - /etc/coturn/turnserver.conf
+      - --static-auth-secret=${TURN_SECRET}
+    volumes:
+      - ./coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
+    ports:
+      - "3478:3478/tcp"
+      - "3478:3478/udp"
+      - "40000-40040:40000-40040/udp"
