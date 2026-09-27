@@ -1,0 +1,21 @@
+{
+    "dart.flutterSdkPath": "flutter/.fvm/flutter_sdk",
+    "search.exclude": {
+        "**/.fvm": true
+    },
+    "files.watcherExclude": {
+        "**/.fvm": true
+    },
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit"
+    },
+    "dart.previewFlutterUiGuides": true,
+    "dart.closingLabels": true,
+    "[dart]": {
+        "editor.codeActionsOnSave": {
+            "quickfix.insertSemicolon": "explicit"
+        }
+    },
+    "build_runner.fvm": true
+}
