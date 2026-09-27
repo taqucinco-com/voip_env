@@ -18,6 +18,16 @@
             "program": "lib/main.dart",
             "flutterMode": "release",
             "args": []
+        },
+        {
+            "name": "flutter voip_env (Chrome)",
+            "request": "launch",
+            "type": "dart",
+            "cwd": "flutter",
+            "program": "lib/main.dart",
+            "flutterMode": "debug",
+            "deviceId": "chrome",
+            "args": ["--web-port", "5000"]
         }
     ]
 }

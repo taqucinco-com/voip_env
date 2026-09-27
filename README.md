@@ -126,3 +126,25 @@ Session Initiation Protocol
 
 ![SIP](docs/images/SIP.jpeg)
 出典: Ozeki VoIP SIP SDK
+
+## Firebase
+
+- Firebase AuthでClientの認証とIDによるユーザー管理を行う
+- RealTime Databaseでユーザー管理とどのユーザー同士で通信できるかを決める
+
+```sh
+brew update && brew install --cask gcloud-cli
+dart pub global activate flutterfire_cli
+gcloud auth login
+gcloud projects list
+gcloud config set project voip-env
+gcloud config get-value project
+firebase login
+firebase projects:list
+```
+
+### RealTime Database
+
+#### schema
+
+#### rule
