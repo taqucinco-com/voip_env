@@ -2,9 +2,15 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:google_sign_in_web/web_only.dart' as google_sign_in_web;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:voip_env/feature/auth/auth_provider.dart';
+
+// google_sign_in_webはdart:js_interopに依存しており、非Web(Android/iOS)の
+// kernelコンパイルに含めると型解決エラーになるため、条件付きインポートで
+// 非Web環境ではstub実装に差し替える。
+import 'google_signin_button_web.dart'
+    if (dart.library.io) 'google_signin_button_stub.dart'
+    as google_signin_button;
 
 class LoginPage extends HookConsumerWidget {
   const LoginPage({super.key});
@@ -28,7 +34,7 @@ class LoginPage extends HookConsumerWidget {
     }, [authFacade]);
 
     final googleSignInButton = kIsWeb
-        ? google_sign_in_web.renderButton()
+        ? google_signin_button.renderGoogleSignInButton()
         : ElevatedButton.icon(
             onPressed: () async => await authFacade.signInWithGoogle(),
             icon: const Icon(Icons.login),

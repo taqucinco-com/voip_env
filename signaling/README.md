@@ -108,3 +108,28 @@ firebase database:get /.settings/rules --project=voip-env
 ```
 
 `.firebaserc`はリポジトリルートに置く運用のため、`firebase init`実行時にこのディレクトリに生成された場合はリポジトリルートへ移動するか、`firebase deploy --project voip-env`のようにプロジェクトを明示する。
+
+## Service Accountへの権限付与
+
+| サービス       | 用途                                                                       | 必要なIAMロール                    | ロールID                          |
+| -------------- | -------------------------------------------------------------------------- | ----------------------------------- | ----------------------------------- |
+| Realtime DB    | ルーム作成、SDP/ICEの書き込み、セキュリティルールをバイパスした読み書き     | Firebase Realtime Database 管理者   | `roles/firebasedatabase.admin`      |
+| Firebase Auth  | クライアントから送られたID Tokenの検証、カスタムトークン発行、ユーザー検索  | Firebase Authentication 管理者      | `roles/firebaseauth.admin`          |
+| FCM (Push通知) | 未実装                                                                      | -                                    | -                                    |
+
+## データセット
+
+```sh
+## groups/group_test1/members に uid のリストjsonデータを書き込む
+firebase database:set /groups/group_test1/members {jsonファイル} --project=voip-env
+
+## 書き出した内容を確認する
+firebase database:get /groups/group_test1 --project=voip-env --pretty
+```
+
+```json
+{
+  "suyM...": true,
+  "yWo7...": true
+}
+```
