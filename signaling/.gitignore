@@ -33,6 +33,12 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# Firebase Admin SDKのサービスアカウント秘密鍵
+/secrets/
+
+# firebase CLIで生成する、Realtime Databaseルールのデプロイ設定（firebase initで再生成可能）
+firebase.json
+
 # vercel
 .vercel
 

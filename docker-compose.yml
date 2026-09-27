@@ -10,6 +10,9 @@ services:
       - /app/.next
     environment:
       - NODE_ENV=development
+      - FIREBASE_DATABASE_URL=${FIREBASE_DATABASE_URL}
+      - TURN_SECRET=${TURN_SECRET}
+      - TURN_HOST=${TURN_HOST}
 
   coturn:
     image: coturn/coturn:latest

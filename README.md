@@ -147,4 +147,56 @@ firebase projects:list
 
 #### schema
 
+設計判断の背景は`docs/adrs/202609262054-call-signaling-via-backend-api.md`と`docs/adrs/202609271801-call-room-schema-and-signaling-endpoints.md`を参照。
+
+```jsonc
+{
+  "groups": {
+    "group_101": {
+      "members": { "uid_A": true, "uid_B": true }
+    }
+  },
+  "users": {
+    "uid_A": { "status": "busy" },
+    "uid_B": {
+      "status": "busy",
+      // callee側のみ・通話中のみ存在。着信ダイアログ表示のトリガー
+      "incomingCall": { "roomId": "room_xyz123", "callerUid": "uid_A", "groupId": "group_101", "createdAt": 0 }
+    }
+  },
+  "calls": {
+    "room_xyz123": {
+      "groupId": "group_101", "caller": "uid_A", "callee": "uid_B",
+      "status": "calling",           // "calling" | "active" | "ended"
+      "endedReason": null,           // "rejected" | "cancelled" | "hangup"（ended時のみ）
+      "endedBy": null,               // 終了操作をしたuid（ended時のみ）
+      "createdAt": 0, "answeredAt": null, "endedAt": null,
+      "offer": { "sdp": "...", "createdAt": 0 },   // callerのみ書き込み可
+      "answer": { "sdp": "...", "createdAt": 0 },  // calleeのみ書き込み可
+      "iceCandidates": {
+        "caller": { "-pushKey": { "candidate": "...", "sdpMid": "0", "sdpMLineIndex": 0, "createdAt": 0 } },
+        "callee": { "-pushKey": { "...": "..." } }
+      }
+    }
+  }
+}
+```
+
+- `groups/{groupId}/members`: グループに属するuidの一覧。同じグループのユーザー同士のみ通話可能（`start` APIがチェック）
+- `users/{uid}/status`: `online` / `busy`。`busy`の相手には新規発信できない
+- `users/{uid}/incomingCall`: 着信通知。calleeが監視し、着信ダイアログの表示に使う
+- `calls/{roomId}`: 通話セッション本体。`status`/`endedReason`/`endedBy`など管理フィールドは`start`/`accept`/`end` APIのみが書き込む（クライアントの直接書き込みは不可）。`offer`/`answer`/`iceCandidates`はcaller/callee本人がクライアントから直接書き込む（詳細は次項）
+
+#### API（signaling server）
+
+通話開始・応答・終了はクライアントの直接DB書き込みではなく、`signaling/`が提供するAPIを経由する。詳細は`signaling/README.md`を参照。
+
+- `POST /api/calls/start`: 発信（グループ所属確認・busy判定・roomId発行・TURN資格情報発行）
+- `POST /api/calls/[roomId]/accept`: 応答（`calling`→`active`）
+- `POST /api/calls/[roomId]/end`: 終了（拒否/発信取消/通話終了のいずれもこの1本に集約。理由はサーバー側で導出）
+
+Offer/Answer/ICE Candidateの交換はAPIを経由せず、発行された`roomId`を使ってクライアント同士が`calls/{roomId}`配下に直接読み書きする（セキュリティルールで境界を強制）。
+
 #### rule
+
+Realtime Databaseのセキュリティルールは`database.rules.json`（リポジトリルート）で管理する。`status`等の管理フィールドはAPI（Admin SDK）からのみ書き込み可能（クライアントの直接書き込みは不可）で、`offer`/`answer`/`iceCandidates`はcaller/callee本人のみ直接書き込みできる。デプロイ手順・Admin SDKのセットアップ手順は`signaling/README.md`を参照。

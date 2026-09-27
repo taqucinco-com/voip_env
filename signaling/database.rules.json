@@ -1,0 +1,50 @@
+{
+  "rules": {
+    "groups": {
+      "$groupId": {
+        ".read": "auth != null && data.child('members').child(auth.uid).exists()",
+        ".write": false
+      }
+    },
+    "users": {
+      "$uid": {
+        "status": {
+          ".read": "auth != null",
+          ".write": false
+        },
+        "incomingCall": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": false
+        }
+      }
+    },
+    "calls": {
+      "$roomId": {
+        ".read": "auth != null && (data.child('caller').val() === auth.uid || data.child('callee').val() === auth.uid)",
+        "groupId": { ".write": false },
+        "caller": { ".write": false },
+        "callee": { ".write": false },
+        "status": { ".write": false },
+        "endedReason": { ".write": false },
+        "endedBy": { ".write": false },
+        "createdAt": { ".write": false },
+        "answeredAt": { ".write": false },
+        "endedAt": { ".write": false },
+        "offer": {
+          ".write": "auth != null && auth.uid === root.child('calls').child($roomId).child('caller').val()"
+        },
+        "answer": {
+          ".write": "auth != null && auth.uid === root.child('calls').child($roomId).child('callee').val()"
+        },
+        "iceCandidates": {
+          "caller": {
+            ".write": "auth != null && auth.uid === root.child('calls').child($roomId).child('caller').val()"
+          },
+          "callee": {
+            ".write": "auth != null && auth.uid === root.child('calls').child($roomId).child('callee').val()"
+          }
+        }
+      }
+    }
+  }
+}

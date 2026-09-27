@@ -1,1 +1,4 @@
 .env
+
+# firebase CLIで生成する、プロジェクトのエイリアス設定（firebase initで再生成可能）
+.firebaserc
