@@ -6,6 +6,10 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 abstract interface class AuthorizationFacade {
   Future<UserCredential?> signInWithGoogle();
+  // Web版はauthenticate()による明示的なサインインをサポートしないため、
+  // GoogleSignIn.instance.authenticationEventsから受け取ったアカウントで
+  // Firebase認証まで進める。
+  Future<UserCredential?> signInWithGoogleAccount(GoogleSignInAccount account);
   Future<void> signOut();
   Future<String?> getIdToken();
   Future<void> deleteAccount();
@@ -36,17 +40,22 @@ class AuthorizationFacadeImpl implements AuthorizationFacade {
       // main()で一度だけinitialize()している前提。
       final GoogleSignInAccount googleUser =
           await GoogleSignIn.instance.authenticate();
-
-      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
-
-      final credential = GoogleAuthProvider.credential(
-        idToken: googleAuth.idToken,
-      );
-
-      return await FirebaseAuth.instance.signInWithCredential(credential);
+      return await signInWithGoogleAccount(googleUser);
     } on GoogleSignInException catch (e) {
       if (kDebugMode) print('Google sign-in failed: ${e.code} ${e.description}');
       return null;
+    }
+  }
+
+  @override
+  Future<UserCredential?> signInWithGoogleAccount(
+    GoogleSignInAccount account,
+  ) async {
+    try {
+      final credential = GoogleAuthProvider.credential(
+        idToken: account.authentication.idToken,
+      );
+      return await FirebaseAuth.instance.signInWithCredential(credential);
     } on FirebaseAuthException catch (e) {
       if (kDebugMode) print('Failed with error code: ${e.code}');
       if (kDebugMode) print(e.message);
