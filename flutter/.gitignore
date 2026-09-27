@@ -45,3 +45,7 @@ coverage/
 
 # 環境変数（Firebase設定等の秘密情報）
 .env.local
+
+# firebase
+firebase.json
+lib/firebase_options.dart

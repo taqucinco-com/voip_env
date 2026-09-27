@@ -19,6 +19,25 @@ samples, guidance on mobile development, and a full API reference.
 
 - Firebase AuthでClientの認証を行う
 
+```sh
+brew update && brew install --cask gcloud-cli
+dart pub global activate flutterfire_cli
+gcloud auth login
+gcloud projects list
+gcloud config set project voip-env
+gcloud config get-value project
+firebase login
+firebase projects:list
+flutter pub add firebase_core
+fvm dart pub global run flutterfire_cli:flutterfire configure --android-package-name=com.taqucinco.voip_env --ios-bundle-id={app_id} --platforms=android,ios,web --project=voip-env --overwrite-firebase-options
+```
+
+firebase側でproject設定ができていれば上記のコマンドでgoogle servicesを取得できる。
+以下のファイルもこのコマンドで認証されているユーザーが取得できるため.gitignoreとして扱う。
+
+- firebase.json
+- lib/firebase_options.dart
+
 ### Android
 
 debug.keystoreのSHA-1は以下のコマンドで表示する。
