@@ -161,6 +161,7 @@ firebase projects:list
     "uid_B": {
       "status": "busy",
       // callee側のみ・通話中のみ存在。着信ダイアログ表示のトリガー
+      // 「能動的に動いた側（caller）はAPIレスポンスで即座に情報を受け取れる」「受動的に待つ側（callee）だけが、自分の決まった場所を見張ることで誰からでも着信に気づける仕組みが要る」
       "incomingCall": { "roomId": "room_xyz123", "callerUid": "uid_A", "groupId": "group_101", "createdAt": 0 }
     }
   },
@@ -200,3 +201,23 @@ Offer/Answer/ICE Candidateの交換はAPIを経由せず、発行された`roomI
 #### rule
 
 Realtime Databaseのセキュリティルールは`database.rules.json`（リポジトリルート）で管理する。`status`等の管理フィールドはAPI（Admin SDK）からのみ書き込み可能（クライアントの直接書き込みは不可）で、`offer`/`answer`/`iceCandidates`はcaller/callee本人のみ直接書き込みできる。デプロイ手順・Admin SDKのセットアップ手順は`signaling/README.md`を参照。
+
+# 確認フロー
+
+1. Aさん(yWo72LEq7TRiHRsPbfhzDh9Bzd13)からBさん(suyMIoEvFOVy2bBYvWhw4KZSQ753)にflutterアプリで"テスト発信(start call)""をタップする
+2. RealTime Databaseが書き換わっていることを確認する
+
+```sh
+
+# ユーザーのstatusを確認
+firebase database:get /users --project=voip-env --pretty
+
+# roomを削除
+firebase database:remove /calls/-P2XsUvdmgEtIhABYO23 --project=voip-env -f
+
+# busyのままなら手動でonlineへ戻す（本来はendCallで自動的に行われる）
+firebase database:set /users/yWo72LEq7TRiHRsPbfhzDh9Bzd13/status -d '"online"' --project=voip-env -f
+firebase database:set /users/suyMIoEvFOVy2bBYvWhw4KZSQ753/status -d '"online"' --project=voip-env -f
+# callee側のincomingCallを削除
+firebase database:remove /users/suyMIoEvFOVy2bBYvWhw4KZSQ753/incomingCall --project=voip-env -f
+```

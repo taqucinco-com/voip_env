@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart'
-    show TargetPlatform, defaultTargetPlatform, kIsWeb;
+    show TargetPlatform, defaultTargetPlatform, kIsWeb, debugPrint;
 import 'package:http/http.dart' as http;
 
 // AndroidエミュレータからはホストのDockerコンテナへ`localhost`で到達できないため、
@@ -15,10 +15,7 @@ String _signalingBaseUrl() {
 }
 
 class StartCallResult {
-  StartCallResult({
-    required this.statusCode,
-    required this.body,
-  });
+  StartCallResult({required this.statusCode, required this.body});
 
   final int statusCode;
   final Map<String, dynamic> body;
@@ -37,6 +34,8 @@ Future<StartCallResult> startCall({
     },
     body: jsonEncode({'calleeUid': calleeUid, 'groupId': groupId}),
   );
+
+  debugPrint('Start call response: ${response.statusCode} ${response.body}');
 
   return StartCallResult(
     statusCode: response.statusCode,
