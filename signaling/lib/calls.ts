@@ -102,10 +102,17 @@ export async function acceptCall(
   if (call.callee !== uid) {
     throw new ApiError(403, "NOT_CALL_PARTICIPANT", "only the callee can accept a call");
   }
+  // getCallOrThrow()で取得済みの実際の値を使って、transaction()を試みる前にfail-fastする。
+  if (call.status !== "calling") {
+    throw new ApiError(409, "INVALID_CALL_STATE", `cannot accept a call in status "${call.status}"`);
+  }
 
+  // call.statusの事前確認は済んでいるが、ここのcurrentはSDKのローカルキャッシュ由来で、
+  // pathが未キャッシュだとnullになりうる（getCallOrThrow()のget()では温まらない）。
+  // nullもcalling同様に許容し、実際のサーバー値との食い違いはtransaction()のリトライに委ねる。
   const statusRef = adminDb.ref(`calls/${roomId}/status`);
   const result = await statusRef.transaction((current) =>
-    current === "calling" ? "active" : undefined,
+    current === null || current === "calling" ? "active" : undefined,
   );
   if (!result.committed) {
     throw new ApiError(409, "INVALID_CALL_STATE", `cannot accept a call in status "${call.status}"`);
