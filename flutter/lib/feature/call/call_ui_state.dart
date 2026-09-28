@@ -33,9 +33,15 @@ class CallIncomingRinging extends CallUiState {
 
 // 通話が確立している状態。
 class CallInProgress extends CallUiState {
-  const CallInProgress({required this.roomId, required this.peerUid});
+  const CallInProgress({
+    required this.roomId,
+    required this.peerUid,
+    required this.isCaller,
+  });
   final String roomId;
   final String peerUid;
+  // Offer/Answerはcaller/calleeで送信するAPIが異なるため、UI側の出し分けに使う。
+  final bool isCaller;
 }
 
 // incomingCall・追跡中のroomId・calls/{roomId}のレコードから、
@@ -69,7 +75,11 @@ CallUiState deriveCallUiState({
   final isCaller = callRecord.caller == myUid;
   final peerUid = isCaller ? callRecord.callee : callRecord.caller;
   if (callRecord.status == 'active') {
-    return CallInProgress(roomId: currentRoomId, peerUid: peerUid);
+    return CallInProgress(
+      roomId: currentRoomId,
+      peerUid: peerUid,
+      isCaller: isCaller,
+    );
   }
   return CallOutgoingRinging(roomId: currentRoomId, calleeUid: peerUid);
 }

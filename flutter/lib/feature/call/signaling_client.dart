@@ -75,3 +75,45 @@ Future<SignalingApiResult> endCall({
 }) {
   return _post(path: '/api/calls/$roomId/end', idToken: idToken);
 }
+
+Future<SignalingApiResult> submitOffer({
+  required String idToken,
+  required String roomId,
+  required String sdp,
+}) {
+  return _post(
+    path: '/api/calls/$roomId/offer',
+    idToken: idToken,
+    body: {'sdp': sdp},
+  );
+}
+
+Future<SignalingApiResult> submitAnswer({
+  required String idToken,
+  required String roomId,
+  required String sdp,
+}) {
+  return _post(
+    path: '/api/calls/$roomId/answer',
+    idToken: idToken,
+    body: {'sdp': sdp},
+  );
+}
+
+Future<SignalingApiResult> submitIceCandidate({
+  required String idToken,
+  required String roomId,
+  required String candidate,
+  String? sdpMid,
+  int? sdpMLineIndex,
+}) {
+  return _post(
+    path: '/api/calls/$roomId/ice-candidates',
+    idToken: idToken,
+    body: {
+      'candidate': candidate,
+      'sdpMid': sdpMid,
+      'sdpMLineIndex': sdpMLineIndex,
+    },
+  );
+}

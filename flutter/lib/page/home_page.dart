@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:voip_env/feature/auth/auth_provider.dart';
+import 'package:voip_env/feature/call/call_negotiation.dart';
 import 'package:voip_env/feature/call/call_record.dart';
 import 'package:voip_env/feature/call/call_ui_state.dart';
 import 'package:voip_env/feature/call/incoming_call.dart';
@@ -36,6 +37,32 @@ class HomePage extends HookConsumerWidget {
     final callRecord = currentRoomId.value == null
         ? null
         : ref.watch(callRecordProvider(currentRoomId.value!)).value;
+
+    // シグナリング配線の動作確認用。offer/answer/ICE候補の到達状況を画面に出す。
+    final callOffer = currentRoomId.value == null
+        ? null
+        : ref.watch(callOfferProvider(currentRoomId.value!)).value;
+    final callAnswer = currentRoomId.value == null
+        ? null
+        : ref.watch(callAnswerProvider(currentRoomId.value!)).value;
+    final callerIceCandidates = currentRoomId.value == null
+        ? const <IceCandidateEntry>[]
+        : ref.watch(
+                iceCandidatesProvider((
+                  roomId: currentRoomId.value!,
+                  side: 'caller',
+                )),
+              ).value ??
+              const <IceCandidateEntry>[];
+    final calleeIceCandidates = currentRoomId.value == null
+        ? const <IceCandidateEntry>[]
+        : ref.watch(
+                iceCandidatesProvider((
+                  roomId: currentRoomId.value!,
+                  side: 'callee',
+                )),
+              ).value ??
+              const <IceCandidateEntry>[];
 
     final callUiState = deriveCallUiState(
       myUid: user?.uid,
@@ -125,6 +152,57 @@ class HomePage extends HookConsumerWidget {
       }
     });
 
+    Future<void> handleSendTestOffer(String roomId) => withProcessing(() async {
+      final idToken = await authorizer.getIdToken();
+      if (idToken == null) {
+        return;
+      }
+
+      final result = await submitOffer(
+        idToken: idToken,
+        roomId: roomId,
+        sdp: 'dummy-offer-${DateTime.now().millisecondsSinceEpoch}',
+      );
+      if (!result.isSuccess) {
+        showApiError(result);
+      }
+    });
+
+    Future<void> handleSendTestAnswer(String roomId) => withProcessing(() async {
+      final idToken = await authorizer.getIdToken();
+      if (idToken == null) {
+        return;
+      }
+
+      final result = await submitAnswer(
+        idToken: idToken,
+        roomId: roomId,
+        sdp: 'dummy-answer-${DateTime.now().millisecondsSinceEpoch}',
+      );
+      if (!result.isSuccess) {
+        showApiError(result);
+      }
+    });
+
+    Future<void> handleSendTestIceCandidate(String roomId) =>
+        withProcessing(() async {
+          final idToken = await authorizer.getIdToken();
+          if (idToken == null) {
+            return;
+          }
+
+          final result = await submitIceCandidate(
+            idToken: idToken,
+            roomId: roomId,
+            candidate: 'dummy-candidate-${DateTime.now().millisecondsSinceEpoch}',
+            sdpMid: '0',
+            sdpMLineIndex: 0,
+          );
+          if (!result.isSuccess) {
+            showApiError(result);
+          }
+        });
+
     final (statusText, actions) = switch (callUiState) {
       CallIdle() => (
         'オンライン',
@@ -183,15 +261,58 @@ class HomePage extends HookConsumerWidget {
         ],
       ),
       body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('user_id: ${user?.uid ?? '-'}'),
-            const SizedBox(height: 8.0),
-            Text(statusText, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 24.0),
-            Row(mainAxisSize: MainAxisSize.min, children: actions),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('user_id: ${user?.uid ?? '-'}'),
+              const SizedBox(height: 8.0),
+              Text(statusText, style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 24.0),
+              Row(mainAxisSize: MainAxisSize.min, children: actions),
+              if (callUiState case CallInProgress(:final roomId, :final isCaller)) ...[
+                const SizedBox(height: 24.0),
+                const Divider(),
+                Text(
+                  'シグナリング配線テスト（Offer/Answer/ICE候補）',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 8.0),
+                Text('Offer: ${callOffer?.sdp ?? '未送信'}'),
+                Text('Answer: ${callAnswer?.sdp ?? '未送信'}'),
+                Text('ICE候補(caller): ${callerIceCandidates.length}件'),
+                Text('ICE候補(callee): ${calleeIceCandidates.length}件'),
+                const SizedBox(height: 8.0),
+                Wrap(
+                  spacing: 8.0,
+                  runSpacing: 8.0,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    if (isCaller)
+                      OutlinedButton(
+                        onPressed: isProcessing.value
+                            ? null
+                            : () => handleSendTestOffer(roomId),
+                        child: const Text('テストOfferを送る'),
+                      )
+                    else
+                      OutlinedButton(
+                        onPressed: isProcessing.value
+                            ? null
+                            : () => handleSendTestAnswer(roomId),
+                        child: const Text('テストAnswerを送る'),
+                      ),
+                    OutlinedButton(
+                      onPressed: isProcessing.value
+                          ? null
+                          : () => handleSendTestIceCandidate(roomId),
+                      child: const Text('テストICE候補を送る'),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
