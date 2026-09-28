@@ -213,7 +213,7 @@ Realtime Databaseのセキュリティルールは`database.rules.json`（リポ
 firebase database:get /users --project=voip-env --pretty
 
 # roomを削除
-firebase database:remove /calls/-P2XsUvdmgEtIhABYO23 --project=voip-env -f
+firebase database:remove /calls --project=voip-env -f
 
 # busyのままなら手動でonlineへ戻す（本来はendCallで自動的に行われる）
 firebase database:set /users/yWo72LEq7TRiHRsPbfhzDh9Bzd13/status -d '"online"' --project=voip-env -f
