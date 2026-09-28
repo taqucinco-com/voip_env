@@ -20,6 +20,12 @@
 
 ## Server
 
+```sh
+ipconfig getifaddr en0
+```
+
+でイントラネット上のIPアドレスを特定する。client側のモバイルはこのホストアドレスに書き換えること。
+
 ### WebRTC（シグナリングサーバー）
 
 [発信者 (Peer A)]             [シグナリングサーバー]             [着信者 (Peer B)]

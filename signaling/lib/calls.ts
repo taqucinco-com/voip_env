@@ -164,3 +164,50 @@ export async function endCall(
 
   return { status: "ended", reason };
 }
+
+export async function submitOffer(uid: string, roomId: string, sdp: string): Promise<void> {
+  const call = await getCallOrThrow(roomId);
+  if (call.caller !== uid) {
+    throw new ApiError(403, "NOT_CALL_PARTICIPANT", "only the caller can submit an offer");
+  }
+
+  await adminDb.ref(`calls/${roomId}/offer`).set({
+    sdp,
+    createdAt: ServerValue.TIMESTAMP,
+  });
+}
+
+export async function submitAnswer(uid: string, roomId: string, sdp: string): Promise<void> {
+  const call = await getCallOrThrow(roomId);
+  if (call.callee !== uid) {
+    throw new ApiError(403, "NOT_CALL_PARTICIPANT", "only the callee can submit an answer");
+  }
+
+  await adminDb.ref(`calls/${roomId}/answer`).set({
+    sdp,
+    createdAt: ServerValue.TIMESTAMP,
+  });
+}
+
+export type IceCandidateInput = {
+  candidate: string;
+  sdpMid: string | null;
+  sdpMLineIndex: number | null;
+};
+
+export async function submitIceCandidate(
+  uid: string,
+  roomId: string,
+  candidate: IceCandidateInput,
+): Promise<void> {
+  const call = await getCallOrThrow(roomId);
+  if (call.caller !== uid && call.callee !== uid) {
+    throw new ApiError(403, "NOT_CALL_PARTICIPANT", "uid is not a participant of this call");
+  }
+
+  const side = uid === call.caller ? "caller" : "callee";
+  await adminDb.ref(`calls/${roomId}/iceCandidates/${side}`).push({
+    ...candidate,
+    createdAt: ServerValue.TIMESTAMP,
+  });
+}

@@ -30,20 +30,9 @@
         "createdAt": { ".write": false },
         "answeredAt": { ".write": false },
         "endedAt": { ".write": false },
-        "offer": {
-          ".write": "auth != null && auth.uid === root.child('calls').child($roomId).child('caller').val()"
-        },
-        "answer": {
-          ".write": "auth != null && auth.uid === root.child('calls').child($roomId).child('callee').val()"
-        },
-        "iceCandidates": {
-          "caller": {
-            ".write": "auth != null && auth.uid === root.child('calls').child($roomId).child('caller').val()"
-          },
-          "callee": {
-            ".write": "auth != null && auth.uid === root.child('calls').child($roomId).child('callee').val()"
-          }
-        }
+        "offer": { ".write": false },
+        "answer": { ".write": false },
+        "iceCandidates": { ".write": false }
       }
     }
   }
