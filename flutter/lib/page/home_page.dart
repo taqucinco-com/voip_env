@@ -7,6 +7,7 @@ import 'package:voip_env/feature/call/call_record.dart';
 import 'package:voip_env/feature/call/call_ui_state.dart';
 import 'package:voip_env/feature/call/incoming_call.dart';
 import 'package:voip_env/feature/call/signaling_client.dart';
+import 'package:voip_env/feature/call/signaling_provider.dart';
 
 // 疎通確認用の固定値。groupIdの選択UIは未実装。
 // group_test1に所属する2つのuidのうち、ログイン中でない方を相手として扱う。
@@ -27,6 +28,7 @@ class HomePage extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authStateChangesProvider).value;
     final authorizer = ref.watch(authFacadeProvider);
+    final signalingClient = ref.watch(signalingClientProvider);
 
     // 発信した/応答した通話のroomId。設定されている間はcalls/{roomId}を監視し、
     // 状態遷移（calling→active→ended）をUIへ反映する。
@@ -109,13 +111,11 @@ class HomePage extends HookConsumerWidget {
 
     Future<void> handleStartCall() => withProcessing(() async {
       final calleeUid = _testCalleeUidFor(user?.uid);
-      final idToken = await authorizer.getIdToken();
-      if (idToken == null || calleeUid == null) {
+      if (calleeUid == null) {
         return;
       }
 
-      final result = await startCall(
-        idToken: idToken,
+      final result = await signalingClient.startCall(
         calleeUid: calleeUid,
         groupId: _testGroupId,
       );
@@ -127,12 +127,7 @@ class HomePage extends HookConsumerWidget {
     });
 
     Future<void> handleAccept(String roomId) => withProcessing(() async {
-      final idToken = await authorizer.getIdToken();
-      if (idToken == null) {
-        return;
-      }
-
-      final result = await acceptCall(idToken: idToken, roomId: roomId);
+      final result = await signalingClient.acceptCall(roomId: roomId);
       if (result.isSuccess) {
         currentRoomId.value = roomId;
       } else {
@@ -141,25 +136,14 @@ class HomePage extends HookConsumerWidget {
     });
 
     Future<void> handleEndCall(String roomId) => withProcessing(() async {
-      final idToken = await authorizer.getIdToken();
-      if (idToken == null) {
-        return;
-      }
-
-      final result = await endCall(idToken: idToken, roomId: roomId);
+      final result = await signalingClient.endCall(roomId: roomId);
       if (!result.isSuccess) {
         showApiError(result);
       }
     });
 
     Future<void> handleSendTestOffer(String roomId) => withProcessing(() async {
-      final idToken = await authorizer.getIdToken();
-      if (idToken == null) {
-        return;
-      }
-
-      final result = await submitOffer(
-        idToken: idToken,
+      final result = await signalingClient.submitOffer(
         roomId: roomId,
         sdp: 'dummy-offer-${DateTime.now().millisecondsSinceEpoch}',
       );
@@ -169,13 +153,7 @@ class HomePage extends HookConsumerWidget {
     });
 
     Future<void> handleSendTestAnswer(String roomId) => withProcessing(() async {
-      final idToken = await authorizer.getIdToken();
-      if (idToken == null) {
-        return;
-      }
-
-      final result = await submitAnswer(
-        idToken: idToken,
+      final result = await signalingClient.submitAnswer(
         roomId: roomId,
         sdp: 'dummy-answer-${DateTime.now().millisecondsSinceEpoch}',
       );
@@ -186,13 +164,7 @@ class HomePage extends HookConsumerWidget {
 
     Future<void> handleSendTestIceCandidate(String roomId) =>
         withProcessing(() async {
-          final idToken = await authorizer.getIdToken();
-          if (idToken == null) {
-            return;
-          }
-
-          final result = await submitIceCandidate(
-            idToken: idToken,
+          final result = await signalingClient.submitIceCandidate(
             roomId: roomId,
             candidate: 'dummy-candidate-${DateTime.now().millisecondsSinceEpoch}',
             sdpMid: '0',

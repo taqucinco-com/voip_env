@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb, debugPrint;
 import 'package:http/http.dart' as http;
+import 'package:voip_env/feature/auth/auth_facade.dart';
 
 // AndroidエミュレータからはホストのDockerコンテナへ`localhost`で到達できないため、
 // エミュレータ専用のループバックアドレス`10.0.2.2`を使う。
@@ -26,94 +27,119 @@ class SignalingApiResult {
   bool get isSuccess => statusCode >= 200 && statusCode < 300;
 }
 
-Future<SignalingApiResult> _post({
-  required String path,
-  required String idToken,
-  Map<String, dynamic>? body,
-}) async {
-  final response = await http.post(
-    Uri.parse('${_signalingBaseUrl()}$path'),
-    headers: {
-      'Authorization': 'Bearer $idToken',
-      'Content-Type': 'application/json',
-    },
-    body: body == null ? null : jsonEncode(body),
-  );
+abstract interface class SignalingClient {
+  Future<SignalingApiResult> startCall({
+    required String calleeUid,
+    required String groupId,
+  });
 
-  debugPrint(
-    'Signaling API response ($path): ${response.statusCode} ${response.body}',
-  );
+  Future<SignalingApiResult> acceptCall({required String roomId});
 
-  return SignalingApiResult(
-    statusCode: response.statusCode,
-    body: jsonDecode(response.body) as Map<String, dynamic>,
-  );
+  Future<SignalingApiResult> endCall({required String roomId});
+
+  Future<SignalingApiResult> submitOffer({
+    required String roomId,
+    required String sdp,
+  });
+
+  Future<SignalingApiResult> submitAnswer({
+    required String roomId,
+    required String sdp,
+  });
+
+  Future<SignalingApiResult> submitIceCandidate({
+    required String roomId,
+    required String candidate,
+    String? sdpMid,
+    int? sdpMLineIndex,
+  });
 }
 
-Future<SignalingApiResult> startCall({
-  required String idToken,
-  required String calleeUid,
-  required String groupId,
-}) {
-  return _post(
-    path: '/api/calls/start',
-    idToken: idToken,
-    body: {'calleeUid': calleeUid, 'groupId': groupId},
-  );
-}
+class SignalingClientImpl implements SignalingClient {
+  SignalingClientImpl({required AuthorizationFacade authorizationFacade})
+    : _authorizationFacade = authorizationFacade;
 
-Future<SignalingApiResult> acceptCall({
-  required String idToken,
-  required String roomId,
-}) {
-  return _post(path: '/api/calls/$roomId/accept', idToken: idToken);
-}
+  final AuthorizationFacade _authorizationFacade;
 
-Future<SignalingApiResult> endCall({
-  required String idToken,
-  required String roomId,
-}) {
-  return _post(path: '/api/calls/$roomId/end', idToken: idToken);
-}
+  Future<SignalingApiResult> _post({
+    required String path,
+    Map<String, dynamic>? body,
+  }) async {
+    final idToken = await _authorizationFacade.getIdToken();
+    if (idToken == null) {
+      throw StateError('idToken is not available. User is not signed in.');
+    }
 
-Future<SignalingApiResult> submitOffer({
-  required String idToken,
-  required String roomId,
-  required String sdp,
-}) {
-  return _post(
-    path: '/api/calls/$roomId/offer',
-    idToken: idToken,
-    body: {'sdp': sdp},
-  );
-}
+    final response = await http.post(
+      Uri.parse('${_signalingBaseUrl()}$path'),
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Content-Type': 'application/json',
+      },
+      body: body == null ? null : jsonEncode(body),
+    );
 
-Future<SignalingApiResult> submitAnswer({
-  required String idToken,
-  required String roomId,
-  required String sdp,
-}) {
-  return _post(
-    path: '/api/calls/$roomId/answer',
-    idToken: idToken,
-    body: {'sdp': sdp},
-  );
-}
+    debugPrint(
+      'Signaling API response ($path): ${response.statusCode} ${response.body}',
+    );
 
-Future<SignalingApiResult> submitIceCandidate({
-  required String idToken,
-  required String roomId,
-  required String candidate,
-  String? sdpMid,
-  int? sdpMLineIndex,
-}) {
-  return _post(
-    path: '/api/calls/$roomId/ice-candidates',
-    idToken: idToken,
-    body: {
-      'candidate': candidate,
-      'sdpMid': sdpMid,
-      'sdpMLineIndex': sdpMLineIndex,
-    },
-  );
+    return SignalingApiResult(
+      statusCode: response.statusCode,
+      body: jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
+
+  @override
+  Future<SignalingApiResult> startCall({
+    required String calleeUid,
+    required String groupId,
+  }) {
+    return _post(
+      path: '/api/calls/start',
+      body: {'calleeUid': calleeUid, 'groupId': groupId},
+    );
+  }
+
+  @override
+  Future<SignalingApiResult> acceptCall({required String roomId}) {
+    return _post(path: '/api/calls/$roomId/accept');
+  }
+
+  @override
+  Future<SignalingApiResult> endCall({required String roomId}) {
+    return _post(path: '/api/calls/$roomId/end');
+  }
+
+  @override
+  Future<SignalingApiResult> submitOffer({
+    required String roomId,
+    required String sdp,
+  }) {
+    return _post(path: '/api/calls/$roomId/offer', body: {'sdp': sdp});
+  }
+
+  @override
+  Future<SignalingApiResult> submitAnswer({
+    required String roomId,
+    required String sdp,
+  }) {
+    return _post(path: '/api/calls/$roomId/answer', body: {'sdp': sdp});
+  }
+
+  @override
+  Future<SignalingApiResult> submitIceCandidate({
+    required String roomId,
+    required String candidate,
+    String? sdpMid,
+    int? sdpMLineIndex,
+  }) {
+    return _post(
+      path: '/api/calls/$roomId/ice-candidates',
+      body: {
+        'candidate': candidate,
+        'sdpMid': sdpMid,
+        'sdpMLineIndex': sdpMLineIndex,
+      },
+    );
+  }
 }
